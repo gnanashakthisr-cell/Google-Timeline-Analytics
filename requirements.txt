@@ -1,0 +1,14 @@
+streamlit
+pandas
+numpy
+plotly
+openpyxl
+fastapi
+uvicorn
+python-multipart
+requests
+lxml
+matplotlib
+seaborn
+geopy
+scikit-learn

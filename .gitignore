@@ -1,0 +1,23 @@
+# ── Secrets (API keys — NEVER commit) ────────────────────────────────────────
+.streamlit/secrets.toml
+
+# ── Geocode cache (binary, auto-regenerates on first run) ────────────────────
+.geocache.pkl
+
+# ── Python bytecode ──────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+
+# ── Scratch / temp files ─────────────────────────────────────────────────────
+test_fix.py
+preflight.py
+implementation_plan.md.resolved
+
+# ── User data (uploaded locally, not part of the app code) ───────────────────
+*.json
+
+# ── OS noise ─────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
