@@ -224,7 +224,7 @@ def process_timeline_json(json_data_str: str) -> Dict[str, Any]:
 # ── Geocoding helpers (module-level, no class overhead) ──────────────────────
 
 def _make_geolocator():
-    return Nominatim(user_agent=f"timeline_analyzer_{time.time()}", timeout=5)
+    return Nominatim(user_agent=f"timeline_analyzer_{time.time()}", timeout=3)
 
 
 def _geocode_one(args: Tuple[str, float, float]) -> Tuple[str, str]:
@@ -243,16 +243,20 @@ def _geocode_one(args: Tuple[str, float, float]) -> Tuple[str, str]:
             return key, (name if name else result.address.split(',')[0])
     except Exception:
         pass
+    finally:
+        time.sleep(0.1)  # Respect Nominatim usage policy (1 req/sec per process)
     return key, "Unknown Location"
 
 
 def _reverse_geocode_batch(
     unique_coords: List[Tuple[str, float, float]],
-    max_workers: int = 10,
+    max_workers: int = 5,
 ) -> Dict[str, str]:
     """
     Parallel geocoding. Uses global in-process + on-disk cache so repeated
     uploads of the same file skip all network calls instantly.
+    NOTE: No st.progress here — this runs inside @st.cache_data which
+    does not allow Streamlit UI calls (would crash silently on Render).
     """
     global _GLOBAL_GEO_CACHE
 
@@ -261,20 +265,12 @@ def _reverse_geocode_batch(
     if not to_fetch:
         return _GLOBAL_GEO_CACHE.copy()
 
-    progress = st.progress(0, text=f"Geocoding {len(to_fetch)} new locations…")
-    new_results: Dict[str, str] = {}
-
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_map = {executor.submit(_geocode_one, args): args[0] for args in to_fetch}
-        done = 0
         for future in as_completed(future_map):
             key, name = future.result()
-            new_results[key] = name
             _GLOBAL_GEO_CACHE[key] = name
-            done += 1
-            progress.progress(done / len(to_fetch), text=f"Geocoding: {done}/{len(to_fetch)}")
 
-    progress.empty()
     _save_disk_cache(_GLOBAL_GEO_CACHE)   # persist to disk for next session
     return _GLOBAL_GEO_CACHE.copy()
 
