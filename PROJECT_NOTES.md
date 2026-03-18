@@ -12,6 +12,7 @@
 | `.streamlit/secrets.toml` | API keys (Groq) |
 | `run_app.ps1` | Launch script |
 | `requirements.txt` | Python dependencies |
+| `sample_timeline.json` | Sample dataset for first-time users (Committed to Git) |
 | `.geocache.pkl` | Persistent on-disk geocode cache (auto-generated) |
 
 ## ✅ What Has Been Built
@@ -57,6 +58,9 @@
   - Weekly/Monthly mobility trend (unique visits)
   - Dual-axis Walking trend — y-axes rounded to 1 decimal
   - Visit Intensity Heatmap (`density_map`)
+- **Aesthetics**: Premium "Glassmorphism" design with **Inter** font, theme-aware CSS (works in dark/light mode), and transparent chart backgrounds
+- **Mobile Responsive**: Columns stack vertically on screens < 640px
+- **Landing Page**: Friendly instructions and feature highlights shown when no file is uploaded
 - **Raw Data Explorer** tab: Segments, Signals, Frequent Places tables
 - **Sidebar**: Data quality score, chatbot
 - **Render order**: file processing happens before any UI draws so chatbot sidebar is always correct on first upload
@@ -66,7 +70,7 @@
 - Context: auto-built from timeline data (locations, distances, modes, date range)
 - UI: Streamlit native `st.chat_message` + `st.chat_input` in sidebar
 - Chat history always renders **above** the input box
-- Groq API Key stored in `.streamlit/secrets.toml`
+- Robust error handling if API key is missing or service is down
 
 ---
 
@@ -100,6 +104,27 @@ Then open `http://localhost:8501` and upload `Timeline.json`.
 ---
 
 ## 📋 Changelog
+
+### Session — 2026-03-18 (UX, Deployment & Robustness)
+
+#### 🧪 Sample Data & Clean Repo
+- **Sample Dataset**: Integrated `sample_timeline.json` into the repository. 
+- **Auto-Load Features**: Added "Use Sample Data" buttons to the sidebar and landing page so new users can explore the app instantly without their own export.
+- **Git Hygiene**: Cleaned up the project structure by removing `test_fix.py`, `preflight.py`, and old implementation logs. Updated `.gitignore` to specifically allow only the sample JSON file.
+
+#### 🎨 Premium UI/UX (`app.py`)
+- **Glassmorphism Design**: Metric cards and sidebar styled with semi-transparent backgrounds and subtle borders for a modern, sleek look.
+- **Theme-Awareness**: CSS variables ensure visibility and aesthetics in both **Streamlit Light and Dark modes**. No more "white on white" or "black on black" issues.
+- **Mobile First**: Added responsive breakpoints to stack layout columns on small devices, preventing horizontal scrolling.
+- **Instructions**: New landing page with a clear "How to use" guide.
+
+#### 🚀 Render Deployment Fixes
+- **Startup Script**: Created `render_start.sh` with specific headless flags to bypass Chromium overhead and prevent initial health-check timeouts (Fixes 5-minute loading issue).
+- **Upload Limit**: Increased maximum allowed file size to **200MB** to support large location history exports.
+
+#### 🔧 ETL Stability (`processor.py`)
+- **Iterative Parsing**: Replaced `pd.json_normalize` with a direct dictionary iteration pass. This fixed "out-of-memory" and "incorrect data shape" crashes (resolved issue where `timelinePath` lists broke the DataFrame).
+- **Geocode Throttling**: Limited automatic geocoding to the **top 25 unknown locations**. This ensures the data processing always completes within the 30-40 second window required for browser-based apps.
 
 ### Session — 2026-03-17 (Performance & UI Polish)
 

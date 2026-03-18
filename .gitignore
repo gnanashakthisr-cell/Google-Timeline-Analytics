@@ -1,9 +1,6 @@
 # ── Secrets (API keys — NEVER commit) ────────────────────────────────────────
 .streamlit/secrets.toml
 
-# ── Geocode cache (binary, auto-regenerates on first run) ────────────────────
-.geocache.pkl
-
 # ── Python bytecode ──────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
@@ -16,6 +13,7 @@ implementation_plan.md.resolved
 
 # ── User data (uploaded locally, not part of the app code) ───────────────────
 *.json
+!sample_timeline.json
 
 # ── OS noise ─────────────────────────────────────────────────────────────────
 .DS_Store

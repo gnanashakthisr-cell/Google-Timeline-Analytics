@@ -125,10 +125,18 @@ df_segments = df_activities = df_visits = pd.DataFrame()
 st.sidebar.title("🛠️ Control Center")
 uploaded_file = st.sidebar.file_uploader("Upload Timeline JSON", type=["json"])
 
-if uploaded_file:
+use_sample = False
+if not uploaded_file:
+    use_sample = st.sidebar.button("✨ Use Sample Data")
+
+if uploaded_file or use_sample:
     try:
-        raw_bytes = uploaded_file.read()
-        json_str  = raw_bytes.decode("utf-8")
+        if uploaded_file:
+            raw_bytes = uploaded_file.read()
+            json_str  = raw_bytes.decode("utf-8")
+        else:
+            with open("sample_timeline.json", "r", encoding="utf-8") as f:
+                json_str = f.read()
 
         with st.spinner("⚙️ Analysing mobility patterns… (first run may take a minute for geocoding)"):
             data    = process_timeline_json(json_str)   # @st.cache_data — instant after first run
@@ -203,6 +211,14 @@ if data is None:
         3. Download and extract the ZIP
         4. Upload `Semantic Location History.json` using the sidebar
         """)
+        st.write("---")
+        st.write("💡 **Don't have a file handy?**")
+        if st.button("🚀 Try with Sample Data"):
+            with open("sample_timeline.json", "r", encoding="utf-8") as f:
+                json_str = f.read()
+            st.session_state.sample_loaded = True
+            st.rerun()
+
     with col_b:
         st.markdown("""
         ### 📊 What you'll see:
