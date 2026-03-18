@@ -138,20 +138,24 @@ def process_timeline_json(json_data_str: str) -> Dict[str, Any]:
             if 'mode_type' in df.columns:
                 df['mode_type'] = df['mode_type'].replace(['SUBWAY', 'subway'], 'Metro', regex=True)
 
-    # ── Heavy Geocoding Section ──────────────────────────────────────────────
-    if not df_vis.empty:
-        # Filter for locations that actually need geocoding
-        needs_geo = df_vis[
-            (~df_vis['coord_key'].isin(LOCATION_MAPPING)) & 
-            (df_vis['json_name'].isna() | (df_vis['json_name'] == ""))
-        ].drop_duplicates(subset=['coord_key'])
+        # LIMIT: Only geocode top 25 most frequent unknown locations to stay under 30s
+        needs_geo = (
+            df_vis[(~df_vis['coord_key'].isin(LOCATION_MAPPING)) & 
+                   (df_vis['json_name'].isna() | (df_vis['json_name'] == ""))]
+            .groupby('coord_key')
+            .size()
+            .sort_values(ascending=False)
+            .head(25)
+            .reset_index()
+        )
 
-        unique_coords = [
-            (row['coord_key'], row['location_lat'], row['location_lng'])
-            for _, row in needs_geo.iterrows() if not np.isnan(row['location_lat'])
-        ]
+        unique_coords = []
+        for _, row in needs_geo.iterrows():
+            # Get lat/lng from the first matching row in df_vis
+            match = df_vis[df_vis['coord_key'] == row['coord_key']].iloc[0]
+            unique_coords.append((row['coord_key'], match['location_lat'], match['location_lng']))
 
-        # Use batch geocoding with 5 workers
+        # Use batch geocoding (max 25 requests taking ~1.2s each = ~30s)
         geo_map = _reverse_geocode_batch(unique_coords) if unique_coords else {}
 
         # Optimized display name assignment
@@ -214,7 +218,7 @@ def _geocode_one(args: Tuple[str, float, float]) -> Tuple[str, str]:
     finally: time.sleep(0.12) # Respect Nominatim 1req/sec
     return key, "Unknown Location"
 
-def _reverse_geocode_batch(unique_coords: List[Tuple[str, float, float]], max_workers: int = 5) -> Dict[str, str]:
+def _reverse_geocode_batch(unique_coords: List[Tuple[str, float, float]], max_workers: int = 8) -> Dict[str, str]:
     global _GLOBAL_GEO_CACHE
     to_fetch = [c for c in unique_coords if c[0] not in _GLOBAL_GEO_CACHE]
     if not to_fetch: return _GLOBAL_GEO_CACHE.copy()

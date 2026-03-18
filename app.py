@@ -35,25 +35,23 @@ html, body, [class*="css"] {
 
 /* KPI metric cards — use Streamlit CSS variables so they work in both themes */
 [data-testid="metric-container"] {
-    background: var(--secondary-background-color, rgba(128,128,128,0.1));
-    padding: 16px 20px;
-    border-radius: 14px;
-    border: 1px solid rgba(128,128,128,0.2);
-    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-    transition: box-shadow 0.2s ease;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    padding: 16px 20px !important;
+    border-radius: 14px !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
 }
-[data-testid="metric-container"]:hover {
-    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
-}
+
 [data-testid="metric-container"] label {
-    font-size: 0.75rem !important;
-    font-weight: 600 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    opacity: 0.7;
+    color: var(--text-color, #FAFAFA) !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    opacity: 0.8 !important;
 }
-[data-testid="metric-container"] [data-testid="metric-value"] {
-    font-size: 1.6rem !important;
+
+[data-testid="metric-container"] [data-testid="stMetricValue"] {
+    color: var(--text-color, #FAFAFA) !important;
+    font-size: 1.8rem !important;
     font-weight: 700 !important;
 }
 
