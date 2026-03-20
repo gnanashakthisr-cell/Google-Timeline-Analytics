@@ -138,6 +138,7 @@ def process_timeline_json(json_data_str: str) -> Dict[str, Any]:
             if 'mode_type' in df.columns:
                 df['mode_type'] = df['mode_type'].replace(['SUBWAY', 'subway'], 'Metro', regex=True)
 
+    if not df_vis.empty:
         # LIMIT: Only geocode top 25 most frequent unknown locations to stay under 30s
         needs_geo = (
             df_vis[(~df_vis['coord_key'].isin(LOCATION_MAPPING)) & 
