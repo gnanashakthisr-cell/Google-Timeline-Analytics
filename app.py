@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -100,9 +101,18 @@ CHAT_ENABLED = False
 CHAT_ERROR   = ""
 
 try:
-    api_key = st.secrets.get("GROQ_API_KEY", "")
+    # Try reading from Streamlit secrets (local)
+    try:
+        api_key = st.secrets.get("GROQ_API_KEY", "")
+    except Exception:
+        api_key = ""
+    
+    # Fallback to environment variables (Render/Production)
     if not api_key:
-        CHAT_ERROR = "GROQ_API_KEY not set in secrets."
+        api_key = os.environ.get("GROQ_API_KEY", "")
+
+    if not api_key:
+        CHAT_ERROR = "GROQ_API_KEY not set in secrets or environment variables."
     else:
         chatbot = TimelineChatbot(api_key=api_key)
         CHAT_ENABLED = True
