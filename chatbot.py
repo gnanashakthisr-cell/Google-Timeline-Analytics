@@ -19,20 +19,15 @@ class TimelineChatbot:
             raise ImportError("groq package not installed. Run: pip install groq")
         self._client = Groq(api_key=api_key)
 
-    # ------------------------------------------------------------------
-    # Context builder – turns DataFrames + metrics into a system prompt
-    # ------------------------------------------------------------------
     def build_context(self, data: Dict[str, Any], metrics: Dict[str, Any]) -> str:
         df_vis = data.get('visits', pd.DataFrame())
         df_act = data.get('activities', pd.DataFrame())
 
-        # Date range
         date_range = "unknown"
         if not df_vis.empty and 'start_time' in df_vis:
             dates = pd.to_datetime(df_vis['start_time'])
             date_range = f"{dates.min().date()} to {dates.max().date()}"
 
-        # Top locations
         top_locs = ""
         if not df_vis.empty and 'display_name' in df_vis.columns:
             loc_counts = df_vis.groupby('display_name').agg(
@@ -42,7 +37,6 @@ class TimelineChatbot:
             rows = [f"  • {r.Index}: {r.visits} visits, {r.hours} hrs" for r in loc_counts.itertuples()]
             top_locs = "\n".join(rows)
 
-        # Transport mode breakdown
         mode_dur = metrics.get('mode_duration_mins', {})
         modes_str = ", ".join([f"{m}: {round(h/60,1)} hrs" for m, h in sorted(mode_dur.items(), key=lambda x: -x[1])]) if mode_dur else "N/A"
 
@@ -78,12 +72,8 @@ Walking Time: {round(metrics.get('total_walking_hrs', 0), 2)} hrs
 """
         return context
 
-    # ------------------------------------------------------------------
-    # Chat
-    # ------------------------------------------------------------------
     def chat(self, user_message: str, history: List[Dict[str, str]], context: str) -> str:
         messages = [{"role": "system", "content": context}]
-        # include recent history (last 8 turns to stay under token limits)
         messages += history[-8:]
         messages.append({"role": "user", "content": user_message})
         try:

@@ -11,7 +11,6 @@ from typing import Dict, Any, List, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from geopy.geocoders import Nominatim
 
-# ── Faster Regex & Helpers ──────────────────────────────────────────────────
 _COORD_RE = re.compile(r"[-+]?\d*\.\d+|\d+")
 _CACHE_FILE = Path(__file__).parent / ".geocache.pkl"
 
@@ -56,7 +55,6 @@ LOCATION_MAPPING: Dict[str, str] = {
 }
 TO_REMOVE = {"13.085, 80.202", "13.137, 79.909", "13.085, 80.201"}
 
-# ── Optimized ETL Pipeline ────────────────────────────────────────────────────
 @st.cache_data(show_spinner=False)
 def process_timeline_json(json_data_str: str) -> Dict[str, Any]:
     """
@@ -65,31 +63,25 @@ def process_timeline_json(json_data_str: str) -> Dict[str, Any]:
     """
     json_data = json.loads(json_data_str)
     
-    # Identify segments list
     segments_list = json_data.get('semanticSegments') or json_data.get('timelineObjects', [])
     
     activities_data = []
     visits_data = []
     
-    # Process segments in a single pass
     for idx, item in enumerate(segments_list):
-        # Determine if it's an activity or a visit
         act = item.get('activitySegment') or item.get('activity')
         vis = item.get('placeVisit') or item.get('visit')
         
-        # Base times
         s_time = item.get('startTime')
         e_time = item.get('endTime')
 
         if act:
-            # Handle version-variant key names for coords/metadata
             start_loc = act.get('startLocation') or act.get('start') or {}
             end_loc   = act.get('endLocation')   or act.get('end')   or {}
             
             s_lat, s_lng = _clean_coords(start_loc.get('latLng'))
             e_lat, e_lng = _clean_coords(end_loc.get('latLng'))
             
-            # Fallback to E7 notation
             if np.isnan(s_lat) and 'latitudeE7' in start_loc:
                 s_lat, s_lng = start_loc['latitudeE7']/1e7, start_loc['longitudeE7']/1e7
             if np.isnan(e_lat) and 'latitudeE7' in end_loc:
@@ -124,11 +116,9 @@ def process_timeline_json(json_data_str: str) -> Dict[str, Any]:
                 'coord_key': coord_key
             })
 
-    # Convert to DataFrames
     df_act = pd.DataFrame(activities_data)
     df_vis = pd.DataFrame(visits_data)
 
-    # Vectorized Datetime conversion (MUCH faster than row-by-row)
     for df in [df_act, df_vis]:
         if not df.empty:
             df['start_time'] = pd.to_datetime(df['start_time'], utc=True)
@@ -139,7 +129,6 @@ def process_timeline_json(json_data_str: str) -> Dict[str, Any]:
                 df['mode_type'] = df['mode_type'].replace(['SUBWAY', 'subway'], 'Metro', regex=True)
 
     if not df_vis.empty:
-        # LIMIT: Only geocode top 25 most frequent unknown locations to stay under 30s
         needs_geo = (
             df_vis[(~df_vis['coord_key'].isin(LOCATION_MAPPING)) & 
                    (df_vis['json_name'].isna() | (df_vis['json_name'] == ""))]
@@ -152,14 +141,11 @@ def process_timeline_json(json_data_str: str) -> Dict[str, Any]:
 
         unique_coords = []
         for _, row in needs_geo.iterrows():
-            # Get lat/lng from the first matching row in df_vis
             match = df_vis[df_vis['coord_key'] == row['coord_key']].iloc[0]
             unique_coords.append((row['coord_key'], match['location_lat'], match['location_lng']))
 
-        # Use batch geocoding (max 25 requests taking ~1.2s each = ~30s)
         geo_map = _reverse_geocode_batch(unique_coords) if unique_coords else {}
 
-        # Optimized display name assignment
         def _get_name(row):
             k = row['coord_key']
             if k in LOCATION_MAPPING: return LOCATION_MAPPING[k]
@@ -173,17 +159,14 @@ def process_timeline_json(json_data_str: str) -> Dict[str, Any]:
         df_vis['display_name'] = df_vis.apply(_get_name, axis=1)
         df_vis = df_vis.rename(columns={'json_name': 'location_name'})
 
-    # Prepare final results
     df_seg = pd.concat([
         df_act.assign(segment_type='Activity'),
         df_vis.assign(segment_type='Visit')
     ]).sort_values('start_time').reset_index(drop=True) if (not df_act.empty or not df_vis.empty) else pd.DataFrame()
 
-    # Skip heavy normalization for signals (usually too large)
     signal = pd.DataFrame(json_data.get('rawSignals', []))
     if not signal.empty: signal = signal.head(1000) # Only keep a preview to save time
 
-    # Frequent Places extraction (optimized)
     frequent_places = pd.DataFrame()
     profile = json_data.get('userLocationProfile', {})
     if 'frequentPlaces' in profile:
@@ -198,7 +181,6 @@ def process_timeline_json(json_data_str: str) -> Dict[str, Any]:
         'data_count': len(segments_list)
     }
 
-# ── Geocoding Helpers (No Streamlit UI calls here) ───────────────────────────
 def _make_geolocator():
     return Nominatim(user_agent=f"timeline_analyzer_{time.time()}", timeout=3)
 
@@ -241,7 +223,6 @@ def _clean_coords(val: Any) -> Tuple[float, float]:
     except: pass
     return np.nan, np.nan
 
-# ── Backwards Compatibility Wrapper ──────────────────────────────────────────
 class TimelineProcessor:
     def process_timeline_json(self, json_data: Dict[str, Any]) -> Dict[str, Any]:
         return process_timeline_json(json.dumps(json_data, default=str))
@@ -266,7 +247,6 @@ class TimelineProcessor:
         walk_km  = m_dist.get('WALKING', 0)
         walk_hrs = m_dur.get('WALKING', 0) / 60.0
         
-        # Estimate quality based on successfully parsed coordinates
         populated = (df_act['start_lat'].notna().sum() + df_vis['location_lat'].notna().sum())
         q_score = (populated / count * 100) if count > 0 else 0
 

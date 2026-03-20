@@ -8,7 +8,6 @@ import plotly.graph_objects as go
 from processor import TimelineProcessor, process_timeline_json
 from chatbot import TimelineChatbot
 
-# ── Page Config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Google Timeline Analytics",
     page_icon="📍",
@@ -16,7 +15,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Theme-aware CSS (works in both light & dark mode) ────────────────────────
 st.markdown("""
 <style>
 /* Import modern font */
@@ -92,17 +90,14 @@ html, body, [class*="css"] {
 </style>
 """, unsafe_allow_html=True)
 
-# ── Plotly dark template globally ─────────────────────────────────────────────
 CHART_TEMPLATE = "plotly_dark"   # works great on dark bg, still readable on light
 
-# ── Initialise Processor & Chatbot ────────────────────────────────────────────
 processor = TimelineProcessor()
 CHAT_ENABLED = False
 CHAT_ERROR   = ""
 
 try:
     api_key = ""
-    # Try reading from Streamlit secrets only if file exists (local)
     import os
     if os.path.exists(".streamlit/secrets.toml"):
         try:
@@ -110,7 +105,6 @@ try:
         except Exception:
             pass
     
-    # Fallback to environment variables (Render/Production)
     if not api_key:
         api_key = os.environ.get("GROQ_API_KEY", "")
 
@@ -122,19 +116,14 @@ try:
 except Exception as e:
     CHAT_ERROR = str(e)
 
-# ── Session state ─────────────────────────────────────────────────────────────
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "chat_context" not in st.session_state:
     st.session_state.chat_context = ""
 
-# ══════════════════════════════════════════════════════════════════════════════
-# STEP 1 — Process data FIRST (before any UI renders)
-# ══════════════════════════════════════════════════════════════════════════════
 data, metrics = None, None
 df_segments = df_activities = df_visits = pd.DataFrame()
 
-# Sidebar file uploader
 st.sidebar.title("🛠️ Control Center")
 uploaded_file = st.sidebar.file_uploader("Upload Timeline JSON", type=["json"])
 
@@ -164,7 +153,6 @@ if uploaded_file or st.session_state.sample_loaded:
             df_activities = data['activities']
             df_visits     = data['visits']
 
-            # Build chatbot context BEFORE sidebar renders (critical)
             if CHAT_ENABLED and not st.session_state.chat_context:
                 st.session_state.chat_context = chatbot.build_context(data, metrics)
 
@@ -173,9 +161,6 @@ if uploaded_file or st.session_state.sample_loaded:
         st.exception(e)
         st.stop()
 
-# ══════════════════════════════════════════════════════════════════════════════
-# STEP 2 — Render Sidebar
-# ══════════════════════════════════════════════════════════════════════════════
 
 if data is not None and metrics:
     stats = metrics.get('cleaning_stats', {})
@@ -196,13 +181,11 @@ elif not st.session_state.chat_context:
 else:
     chat_container = st.sidebar.container()
 
-    # Print history first inside the container
     with chat_container:
         for msg in st.session_state.chat_history:
             with st.chat_message(msg["role"]):
                 st.write(msg["content"])
 
-    # Chat input is pinned below the container
     user_input = st.sidebar.chat_input("Ask about your timeline…")
 
     if user_input:
@@ -221,15 +204,11 @@ else:
                     st.write(reply)
             st.session_state.chat_history.append({"role": "assistant", "content": reply})
 
-# ══════════════════════════════════════════════════════════════════════════════
-# STEP 3 — Main Content Area
-# ══════════════════════════════════════════════════════════════════════════════
 
 st.title("📍 Google Timeline Analytics")
 st.markdown("---")
 
 if data is None:
-    # Landing page with instructions
     col_a, col_b = st.columns([1, 1])
     with col_a:
         st.info("👋 **Upload your** `Semantic Location History.json` **to begin.**")
@@ -250,7 +229,6 @@ if data is None:
 
     with col_b:
         st.markdown("""
-        ### 📊 What you'll see:
         - 🗺️ **Visit Hotspot Map** — where you spend time  
         - 📈 **Mobility Trends** — weekly/monthly patterns  
         - 🚶 **Walking Performance** — distance & duration  
@@ -263,7 +241,6 @@ if df_segments.empty:
     st.warning("⚠️ No valid data segments found in this file.")
     st.stop()
 
-# ── Top KPIs ──────────────────────────────────────────────────────────────────
 k1, k2, k3, k4, k5 = st.columns(5)
 k1.metric("🏁 Total Visits",           metrics.get('total_visits', 0))
 k2.metric("📍 Unique Locations",       metrics.get('unique_locations', 0))
