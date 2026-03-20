@@ -138,13 +138,17 @@ df_segments = df_activities = df_visits = pd.DataFrame()
 st.sidebar.title("🛠️ Control Center")
 uploaded_file = st.sidebar.file_uploader("Upload Timeline JSON", type=["json"])
 
-use_sample = False
-if not uploaded_file:
-    use_sample = st.sidebar.button("✨ Use Sample Data")
+if "sample_loaded" not in st.session_state:
+    st.session_state.sample_loaded = False
 
-if uploaded_file or use_sample:
+if not uploaded_file:
+    if st.sidebar.button("✨ Use Sample Data"):
+        st.session_state.sample_loaded = True
+
+if uploaded_file or st.session_state.sample_loaded:
     try:
         if uploaded_file:
+            st.session_state.sample_loaded = False
             raw_bytes = uploaded_file.read()
             json_str  = raw_bytes.decode("utf-8")
         else:
@@ -190,20 +194,29 @@ if not CHAT_ENABLED:
 elif not st.session_state.chat_context:
     st.sidebar.info("📤 Upload your JSON above to activate the AI assistant.")
 else:
+    # Print history first so it is rendered above the input box
+    for msg in st.session_state.chat_history:
+        with st.sidebar.chat_message(msg["role"]):
+            st.write(msg["content"])
+
+    # Chat input is pinned below the previously rendered elements
     user_input = st.sidebar.chat_input("Ask about your timeline…")
 
     if user_input:
         st.session_state.chat_history.append({"role": "user", "content": user_input})
-        reply = chatbot.chat(
-            user_input,
-            st.session_state.chat_history[:-1],
-            st.session_state.chat_context
-        )
+        with st.sidebar.chat_message("user"):
+            st.write(user_input)
+            
+        with st.spinner("AI is thinking..."):
+            reply = chatbot.chat(
+                user_input,
+                st.session_state.chat_history[:-1],
+                st.session_state.chat_context
+            )
+            
         st.session_state.chat_history.append({"role": "assistant", "content": reply})
-
-    for msg in st.session_state.chat_history:
-        with st.sidebar.chat_message(msg["role"]):
-            st.write(msg["content"])
+        with st.sidebar.chat_message("assistant"):
+            st.write(reply)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STEP 3 — Main Content Area
