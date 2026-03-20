@@ -101,11 +101,14 @@ CHAT_ENABLED = False
 CHAT_ERROR   = ""
 
 try:
-    # Try reading from Streamlit secrets (local)
-    try:
-        api_key = st.secrets.get("GROQ_API_KEY", "")
-    except Exception:
-        api_key = ""
+    api_key = ""
+    # Try reading from Streamlit secrets only if file exists (local)
+    import os
+    if os.path.exists(".streamlit/secrets.toml"):
+        try:
+            api_key = st.secrets.get("GROQ_API_KEY", "")
+        except Exception:
+            pass
     
     # Fallback to environment variables (Render/Production)
     if not api_key:
