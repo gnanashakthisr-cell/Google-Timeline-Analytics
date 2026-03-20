@@ -194,29 +194,32 @@ if not CHAT_ENABLED:
 elif not st.session_state.chat_context:
     st.sidebar.info("📤 Upload your JSON above to activate the AI assistant.")
 else:
-    # Print history first so it is rendered above the input box
-    for msg in st.session_state.chat_history:
-        with st.sidebar.chat_message(msg["role"]):
-            st.write(msg["content"])
+    chat_container = st.sidebar.container()
 
-    # Chat input is pinned below the previously rendered elements
+    # Print history first inside the container
+    with chat_container:
+        for msg in st.session_state.chat_history:
+            with st.chat_message(msg["role"]):
+                st.write(msg["content"])
+
+    # Chat input is pinned below the container
     user_input = st.sidebar.chat_input("Ask about your timeline…")
 
     if user_input:
-        st.session_state.chat_history.append({"role": "user", "content": user_input})
-        with st.sidebar.chat_message("user"):
-            st.write(user_input)
-            
-        with st.spinner("AI is thinking..."):
-            reply = chatbot.chat(
-                user_input,
-                st.session_state.chat_history[:-1],
-                st.session_state.chat_context
-            )
-            
-        st.session_state.chat_history.append({"role": "assistant", "content": reply})
-        with st.sidebar.chat_message("assistant"):
-            st.write(reply)
+        with chat_container:
+            with st.chat_message("user"):
+                st.write(user_input)
+            st.session_state.chat_history.append({"role": "user", "content": user_input})
+                
+            with st.chat_message("assistant"):
+                with st.spinner("AI is thinking..."):
+                    reply = chatbot.chat(
+                        user_input,
+                        st.session_state.chat_history[:-1],
+                        st.session_state.chat_context
+                    )
+                    st.write(reply)
+            st.session_state.chat_history.append({"role": "assistant", "content": reply})
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STEP 3 — Main Content Area
@@ -293,8 +296,9 @@ with dashboard_tab:
                 text='total_hours',
                 template=CHART_TEMPLATE,
             )
-            fig_bar.update_traces(texttemplate='%{text}h', textposition='inside')
+            fig_bar.update_traces(texttemplate='%{text}h', textposition='outside')
             fig_bar.update_layout(
+                height=450,
                 showlegend=False, coloraxis_showscale=False,
                 margin=dict(t=50, b=120),
                 xaxis=dict(title='Location', tickangle=-35),
