@@ -397,7 +397,7 @@ with dashboard_tab:
                 lon=map_df['location_lng'],
                 mode='text',
                 text=map_df['display_name'],
-                textfont=dict(color='white', size=12, family='Inter'),
+                textfont=dict(color='#FFFFFF', size=14, family='Inter', weight='bold'),
                 showlegend=False,
                 hoverinfo='none'
             ))
