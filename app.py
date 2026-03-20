@@ -390,6 +390,18 @@ with dashboard_tab:
                 title="Visit Intensity Map",
                 template=CHART_TEMPLATE,
             )
+            
+            # Overlay place names directly on top of the density map
+            fig_map.add_trace(go.Scattermapbox(
+                lat=map_df['location_lat'],
+                lon=map_df['location_lng'],
+                mode='text',
+                text=map_df['display_name'],
+                textfont=dict(color='white', size=12, family='Inter'),
+                showlegend=False,
+                hoverinfo='none'
+            ))
+
             fig_map.update_layout(
                 height=500,
                 margin=dict(t=40, b=0, l=0, r=0),
