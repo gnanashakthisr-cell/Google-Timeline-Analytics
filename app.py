@@ -273,13 +273,15 @@ with dashboard_tab:
                 text='total_hours',
                 template=CHART_TEMPLATE,
             )
-            fig_bar.update_traces(texttemplate='%{text}h', textposition='outside')
+            fig_bar.update_traces(texttemplate='%{text}h', textposition='outside', cliponaxis=False)
+            max_val = loc_summary['total_hours'].max() if not loc_summary.empty else 100
+            
             fig_bar.update_layout(
                 height=450,
                 showlegend=False, coloraxis_showscale=False,
                 margin=dict(t=50, b=120),
                 xaxis=dict(title='Location', tickangle=-35),
-                yaxis=dict(title='Hours Spent', tickformat='.1f'),
+                yaxis=dict(title='Hours Spent', tickformat='.1f', range=[0, max_val * 1.15]),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
             )
@@ -381,10 +383,10 @@ with dashboard_tab:
     if not df_visits.empty:
         map_df = df_visits.dropna(subset=['location_lat', 'location_lng'])
         if not map_df.empty:
-            fig_map = px.density_map(
+            fig_map = px.density_mapbox(
                 map_df,
                 lat='location_lat', lon='location_lng', z='duration_minutes',
-                radius=20, zoom=10, map_style="carto-darkmatter",
+                radius=20, zoom=10, mapbox_style="carto-darkmatter",
                 title="Visit Intensity Map",
                 template=CHART_TEMPLATE,
             )
